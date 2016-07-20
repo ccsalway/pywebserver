@@ -241,18 +241,18 @@ class Application(object):
                 # get class - supports inner classes: Class1.Class1a
                 for c in _class.split('.'):
                     module = getattr(module, c)
+                # __call__ module
+                result = module(conn)(self.Request, self.Response) or ''
+                # handle result
+                if isinstance(result, tuple):  # content-type, content
+                    self.Response.headers['Content-Type'] = result[0]
+                    result = result[1]
+                if isinstance(result, unicode):
+                    result = result.encode('utf-8')
+                self.Response.content = str(result)  # content must be byte str
             except (ImportError, AttributeError), e:
-                logging.error("Mapping: %s - %s" % (handler, e.message))
+                logging.error("Could not import %s - %s" % (handler, e.message))
                 raise HttpException(500)
-            # __call__ module
-            result = module(conn)(self.Request, self.Response) or ''
-            # handle result
-            if isinstance(result, tuple):  # content-type, content
-                self.Response.headers['Content-Type'] = result[0]
-                result = result[1]
-            if isinstance(result, unicode):
-                result = result.encode('utf-8')
-            self.Response.content = str(result)  # content must be byte str
 
     def set_status(self):
         return '%s %s' % (self.Response.status_code, self._status_codes[self.Response.status_code])
