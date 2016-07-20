@@ -114,7 +114,7 @@ class Application(object):
             part = parts.pop(0)
             for path in paths:
                 if not re.match(path[0] + '$', '/' + part, re.I): continue
-                if isinstance(path[1], (tuple, basestring)):
+                if isinstance(path[1], tuple) or path[1] == '__STATIC__':
                     return path[1], parts[:-1]  # last is blank
                 paths = path[1]
                 break
