@@ -137,11 +137,11 @@ class Application(object):
         return self.parse_data(env.get('QUERY_STRING'), '&')
 
     def get_request_body(self, env):
-        content_type = env.get('CONTENT_TYPE', '').lower()
         content_length = env.get('CONTENT_LENGTH', '0')
         if not content_length.isdigit() or int(content_length) <= 0:
             return {}
         data = env['wsgi.input'].read(int(content_length))
+        content_type = env.get('CONTENT_TYPE', '').lower()
         if content_type.find('application/x-www-form-urlencoded') == 0:
             return self.parse_data(data, '&')
         elif content_type.find('multipart/form-data') == 0:
@@ -165,7 +165,7 @@ class Application(object):
                     continue
                 keys = {}
                 for kv in headers['content-disposition'].split(';'):
-                    if '=' not in kv: continue
+                    if '=' not in kv: continue  # health check
                     k, v = kv.split('=')
                     k = k.strip().lower()
                     keys[k] = v.strip(' "')
@@ -201,17 +201,17 @@ class Application(object):
         hash = sha1()
         hash.update(str(last_modified_timestamp))
         self.Response.headers['Etag'] = etag = hash.hexdigest()
-        # check if etag the same
+        # check if Etag the same
         if_none_match = self.Request.headers.get('HTTP_IF_NONE_MATCH', '')
         if if_none_match == etag:
-            raise HttpException(304)
+            raise HttpException(304)  # not modified
         # check if client has an up-to-date cached version
         try:
             pragma = self.Request.headers.get('HTTP_PRAGMA', '').lower()
             if_modified_since = self.str2httpdate(self.Request.headers['HTTP_IF_MODIFIED_SINCE'])
             # HTTP/1.0 Pragma: no-cache - always fetches the file
             if pragma != 'no-cache' and last_modified <= if_modified_since:
-                raise HttpException(304)
+                raise HttpException(304)  # not modified
         except (KeyError, ValueError):  # missing header or badly formatted datetime
             pass
         # set content-type
@@ -241,16 +241,18 @@ class Application(object):
                 # get class - supports inner classes: Class1.Class1a
                 for c in _class.split('.'):
                     module = getattr(module, c)
-                result = module(conn)(self.Request, self.Response) or ''
-                if isinstance(result, tuple):  # content-type, content
-                    self.Response.headers['Content-Type'] = result[0]
-                    result = result[1]
-                if isinstance(result, unicode):
-                    result = result.encode('utf-8')
-                self.Response.content = str(result)  # content must be byte str
             except (ImportError, AttributeError), e:
                 logging.error("Mapping: %s - %s" % (handler, e.message))
                 raise HttpException(500)
+            # __call__ module
+            result = module(conn)(self.Request, self.Response) or ''
+            # handle result
+            if isinstance(result, tuple):  # content-type, content
+                self.Response.headers['Content-Type'] = result[0]
+                result = result[1]
+            if isinstance(result, unicode):
+                result = result.encode('utf-8')
+            self.Response.content = str(result)  # content must be byte str
 
     def set_status(self):
         return '%s %s' % (self.Response.status_code, self._status_codes[self.Response.status_code])
