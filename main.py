@@ -124,11 +124,8 @@ class Application(object):
         h = {'REMOTE_ADDR': self.Request.realaddr}
         for k, v in env.iteritems():
             if k.find('uwsgi') == 0 or k.find('wsgi') == 0: continue
-            if k == 'REQUEST_SCHEME':
-                if 'HTTP_X_FORWARDED_PROTO' in env:
-                    h[k] = env['HTTP_X_FORWARDED_PROTO']
-                else:
-                    h[k] = v
+            if k == 'REQUEST_SCHEME' and 'HTTP_X_FORWARDED_PROTO' in env:
+                h[k] = env['HTTP_X_FORWARDED_PROTO']
             else:
                 h[k] = v
         return h
