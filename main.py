@@ -89,12 +89,11 @@ class Application(object):
         elif 'HTTP_FORWARDED' in env:
             # for=192.0.2.60, for="[2001:db8:cafe::17]:4711"; proto=http; by=203.0.113.43
             for a in env['HTTP_FORWARDED'].split(';'):
-                if not a.strip().lower().startswith('for'): continue
-                for c in a.split(','):
-                    if '=' not in c: continue
-                    d = c.strip().split('=')
-                    return d[1].strip('" ')
-                break
+                if a.strip().lower().find('for') == 0:
+                    d = a.split(',')[0].strip()
+                    if '=' not in d: continue  # health check
+                    _, ip = d.split('=')
+                    return ip.strip('" ')
         return env['REMOTE_ADDR']
 
     def get_handler(self, env):
