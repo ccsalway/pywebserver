@@ -121,11 +121,9 @@ class Application(object):
         raise HttpException(404, "Unknown Path")
 
     def get_headers(self, env):
-        h = {
-            'REMOTE_ADDR': self.Request.realaddr
-        }
+        h = {'REMOTE_ADDR': self.Request.realaddr}
         for k, v in env.iteritems():
-            if k.startswith('uwsgi') or k.startswith('wsgi'): continue
+            if k.find('uwsgi') == 0 or k.find('wsgi') == 0: continue
             if k == 'REQUEST_SCHEME':
                 if 'HTTP_X_FORWARDED_PROTO' in env:
                     h[k] = env['HTTP_X_FORWARDED_PROTO']
@@ -147,9 +145,9 @@ class Application(object):
         if not content_length.isdigit() or int(content_length) <= 0:
             return {}
         data = env['wsgi.input'].read(int(content_length))
-        if content_type.startswith('application/x-www-form-urlencoded'):
+        if content_type.find('application/x-www-form-urlencoded') == 0:
             return self.parse_data(data, '&')
-        elif content_type.startswith('multipart/form-data'):
+        elif content_type.find('multipart/form-data') == 0:
             vals = {}
             m = re.search(r'boundary="?([\da-zA-Z\'()+,-_\./:=? ]{1,70})', env['CONTENT_TYPE'])
             if m is None:
