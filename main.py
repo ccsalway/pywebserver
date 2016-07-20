@@ -91,7 +91,7 @@ class Application(object):
             for a in env['HTTP_FORWARDED'].split(';'):
                 if a.strip().lower().find('for') == 0:
                     d = a.split(',')[0].strip()
-                    if '=' not in d: continue  # health check
+                    if '=' not in d: break  # health check
                     _, ip = d.split('=')
                     return ip.strip('" ')
         return env['REMOTE_ADDR']
